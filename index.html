@@ -1,0 +1,966 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BILADTRACK - Solar Drying Monitor</title>
+
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet"
+    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background: #f3f6f8;
+            color: #24313d;
+        }
+
+        header {
+            background: #176b45;
+            color: white;
+            padding: 20px 5%;
+        }
+
+        header h1 {
+            margin: 0 0 5px;
+        }
+
+        main {
+            width: 94%;
+            max-width: 1200px;
+            margin: 25px auto;
+        }
+
+        .panel {
+            background: white;
+            padding: 20px;
+            margin-bottom: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 8px #00000010;
+        }
+
+        h2 {
+            margin-top: 0;
+        }
+
+        select, button {
+            width: 100%;
+            padding: 12px;
+            border-radius: 6px;
+            border: 1px solid #ccc;
+            font-size: 15px;
+        }
+
+        button {
+            background: #176b45;
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        button:hover {
+            background: #105638;
+        }
+
+        .controls {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+        }
+
+        #map {
+            width: 100%;
+            height: 520px;
+            border-radius: 8px;
+            border: 1px solid #ccc;
+        }
+
+        .weather-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 12px;
+        }
+
+        .weather-card {
+            background: #f4f8f6;
+            padding: 15px;
+            border-radius: 8px;
+        }
+
+        .weather-card span {
+            display: block;
+            color: #666;
+            margin-bottom: 8px;
+        }
+
+        .weather-card strong {
+            font-size: 22px;
+            color: #176b45;
+        }
+
+        .result {
+            background: #f4f8f6;
+            padding: 15px;
+            border-left: 5px solid #176b45;
+            margin-top: 15px;
+        }
+
+        .result strong {
+            font-size: 25px;
+        }
+
+        .status {
+            color: #176b45;
+            font-weight: bold;
+        }
+
+        .note {
+            color: #666;
+            font-size: 13px;
+            line-height: 1.5;
+        }
+
+        footer {
+            text-align: center;
+            padding: 20px;
+            color: #666;
+        }
+
+        /* 7-DAY WEATHER FORECAST */
+
+        .forecast-box {
+            background: #ffffff;
+            min-width: 220px;
+        }
+
+        .forecast-box h2 {
+            font-size: 20px;
+            line-height: 1.25;
+            margin-bottom: 12px;
+        }
+
+        #forecastStatus {
+            color: #176b45;
+            font-size: 13px;
+            font-weight: bold;
+            margin: 8px 0;
+        }
+
+        .forecast-day {
+            display: grid;
+            grid-template-columns: 1fr auto 1fr;
+            align-items: center;
+            gap: 8px;
+            padding: 9px 0;
+            border-bottom: 1px solid #e5eae7;
+            font-size: 12px;
+        }
+
+        .forecast-day:last-child {
+            border-bottom: none;
+        }
+
+        .forecast-day .day {
+            font-weight: bold;
+        }
+
+        .forecast-day .icon {
+            font-size: 19px;
+        }
+
+        .forecast-day .temp {
+            text-align: right;
+            color: #176b45;
+            font-weight: bold;
+            white-space: nowrap;
+        }
+
+        @media (max-width: 700px) {
+            .forecast-box {
+                grid-column: 1 / -1;
+            }
+        }
+
+        @media(max-width: 600px) {
+            #map {
+                height: 420px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+<header>
+    <h1>BILADTRACK</h1>
+    <p>Solar Drying Location and Weather Monitoring System</p>
+</header>
+
+<main>
+
+    <!-- LOCATION SELECTION -->
+    <section class="panel">
+
+        <h2>Location Selection</h2>
+
+        <div class="controls">
+
+            <div>
+                <label>Select Location</label>
+
+                <select id="location">
+                    <option value="6.1164,125.1716">General Santos</option>
+                    <option value="6.5029,124.8467">Koronadal</option>
+                    <option value="7.0083,125.0894">Kidapawan</option>
+                    <option value="7.1907,125.4553">Davao City</option>
+                    <option value="6.9549,126.2166">Mati City</option>
+                    <option value="8.9475,125.5406">Butuan City</option>
+                    <option value="8.1575,125.1278">Malaybalay</option>
+                    <option value="8.4542,124.6319">Cagayan de Oro</option>
+                    <option value="6.9214,122.0790">Zamboanga City</option>
+                </select>
+            </div>
+
+            <div>
+                <label>Select Crop</label>
+
+                <select id="crop" onchange="updateCrop()">
+                    <option value="Rice">Rice</option>
+                    <option value="Corn">Corn</option>
+                    <option value="Coconut">Coconut</option>
+                    <option value="Fish">Fish</option>
+                    <option value="Coffee">Coffee</option>
+                    <option value="Cacao">Cacao</option>
+                </select>
+            </div>
+
+            <div>
+                <label>Selected Crop</label>
+                <p id="cropDisplay">Rice</p>
+            </div>
+
+            <div>
+                <label>Weather</label>
+                <button onclick="getWeather()">Refresh Weather</button>
+            </div>
+
+        </div>
+
+    </section>
+
+
+    <!-- MAP -->
+    <section class="panel">
+
+        <h2>Candidate Solar Drying Locations</h2>
+
+        <p class="note">
+            Select a location from the dropdown or click a map marker.
+            The map automatically follows the selected location.
+            Zoom in to inspect available roads and buildings.
+        </p>
+
+        <div id="map"></div>
+
+        <p>
+            <b>Candidate Locations:</b>
+            <span id="locationCount">0</span>
+        </p>
+
+        <p class="note">
+            Map data © OpenStreetMap contributors.
+        </p>
+
+    </section>
+
+
+    <!-- CURRENT WEATHER -->
+
+<!-- CURRENT WEATHER -->
+<section class="panel">
+
+    <h2>Current Weather Information</h2>
+
+    <p>
+        Status:
+        <span id="weatherStatus" class="status">
+            Loading...
+        </span>
+    </p>
+
+    <div class="weather-layout">
+
+        <!-- FIVE WEATHER CARDS -->
+        <div class="weather-grid">
+
+            <div class="weather-card">
+                <span>Temperature</span>
+                <strong id="temperature">--</strong>
+            </div>
+
+            <div class="weather-card">
+                <span>Humidity</span>
+                <strong id="humidity">--</strong>
+            </div>
+
+            <div class="weather-card">
+                <span>Rain Probability</span>
+                <strong id="rain">--</strong>
+            </div>
+
+            <div class="weather-card">
+                <span>Solar Radiation</span>
+                <strong id="solar">--</strong>
+            </div>
+
+            <div class="weather-card">
+                <span>Wind Speed</span>
+                <strong id="wind">--</strong>
+            </div>
+
+        </div>
+
+        <!-- FORECAST AT RIGHT CORNER -->
+        <div class="forecast-box">
+
+            <h2>7-Day Weather Forecast</h2>
+
+            <p class="note">
+                Weather forecast for the selected location.
+            </p>
+
+            <p id="forecastStatus">
+                Loading forecast...
+            </p>
+
+            <div id="forecastContainer"></div>
+
+        </div>
+
+    </div>
+
+</section>
+
+
+
+
+
+    <!-- SOLAR DRYING ANALYSIS -->
+    <section class="panel">
+
+        <h2>Solar Drying Suitability Analysis</h2>
+
+        <p class="note">
+            Preliminary weather-based suitability assessment.
+        </p>
+
+        <button onclick="calculateSuitability()">
+            Calculate Suitability
+        </button>
+
+        <div class="result">
+
+            <p>Suitability Score</p>
+
+            <strong id="score">-- / 100</strong>
+
+            <p>
+                <b>Classification:</b>
+                <span id="classification">Not calculated</span>
+            </p>
+
+            <p id="recommendation">
+                Retrieve weather data first.
+            </p>
+
+            <p class="note" id="limitations"></p>
+
+        </div>
+
+    </section>
+
+</main>
+
+<footer>
+    BILADTRACK | Solar Drying Location and Weather Monitoring
+</footer>
+
+
+<!-- LEAFLET JAVASCRIPT -->
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<script>
+
+// ==========================================
+// 1. CANDIDATE SOLAR DRYING LOCATIONS
+// ==========================================
+
+const locations = [
+
+    { name: "General Santos", lat: 6.1164, lng: 125.1716 },
+    { name: "Koronadal", lat: 6.5029, lng: 124.8467 },
+    { name: "Kidapawan", lat: 7.0083, lng: 125.0894 },
+    { name: "Davao City", lat: 7.1907, lng: 125.4553 },
+    { name: "Mati City", lat: 6.9549, lng: 126.2166 },
+    { name: "Butuan City", lat: 8.9475, lng: 125.5406 },
+    { name: "Malaybalay", lat: 8.1575, lng: 125.1278 },
+    { name: "Cagayan de Oro", lat: 8.4542, lng: 124.6319 },
+    { name: "Zamboanga City", lat: 6.9214, lng: 122.0790 }
+
+];
+
+
+// ==========================================
+// 2. INITIALIZE MAP
+// ==========================================
+
+const locationDropdown = document.getElementById("location");
+
+const initialCoords = locationDropdown.value.split(",").map(Number);
+
+const map = L.map("map", {
+    zoomControl: true,
+    scrollWheelZoom: true
+}).setView(initialCoords, 12);
+
+
+// OpenStreetMap detailed road map
+
+L.tileLayer(
+    "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+    {
+        attribution: '&copy; OpenStreetMap contributors',
+        maxZoom: 19
+    }
+).addTo(map);
+
+
+// Map scale
+
+L.control.scale().addTo(map);
+
+
+// ==========================================
+// 3. CREATE MAP MARKERS
+// ==========================================
+
+const locationMarkers = {};
+
+document.getElementById("locationCount").textContent =
+    locations.length;
+
+
+locations.forEach(place => {
+
+    const marker = L.marker([
+        place.lat,
+        place.lng
+    ]).addTo(map);
+
+    marker.bindPopup(`
+        <b>${place.name}</b><br>
+        Candidate Solar Drying Location<br><br>
+
+        <button onclick="selectLocation('${place.name}')">
+            Analyze Location
+        </button>
+    `);
+
+    locationMarkers[place.name] = marker;
+
+
+    // CLICK MARKER
+
+    marker.on("click", function() {
+
+        locationDropdown.value =
+            `${place.lat},${place.lng}`;
+
+        map.flyTo(
+            [place.lat, place.lng],
+            17,
+            {
+                animate: true,
+                duration: 1.5
+            }
+        );
+
+        getWeather();
+        getForecast();
+
+    });
+
+});
+
+
+// ==========================================
+// 4. SELECT LOCATION
+// ==========================================
+
+function selectLocation(name) {
+
+    const place = locations.find(
+        item => item.name === name
+    );
+
+    if (!place) return;
+
+    locationDropdown.value =
+        `${place.lat},${place.lng}`;
+
+    map.flyTo(
+        [place.lat, place.lng],
+        17,
+        {
+            animate: true,
+            duration: 1.5
+        }
+    );
+
+    locationMarkers[name].openPopup();
+
+    getWeather();
+    getForecast();
+
+}
+
+
+// ==========================================
+// 5. DROPDOWN AUTOMATIC MAP MOVEMENT
+// ==========================================
+
+locationDropdown.addEventListener("change", function() {
+
+    const coords = this.value.split(",").map(Number);
+
+    const lat = coords[0];
+    const lng = coords[1];
+
+    const place = locations.find(item =>
+        item.lat === lat && item.lng === lng
+    );
+
+    if (!place) return;
+
+    map.flyTo(
+        [lat, lng],
+        17,
+        {
+            animate: true,
+            duration: 1.5
+        }
+    );
+
+    locationMarkers[place.name].openPopup();
+
+    getWeather();
+    getForecast();
+
+});
+
+
+// ==========================================
+// 6. CROP SELECTION
+// ==========================================
+
+function updateCrop() {
+
+    const crop = document.getElementById("crop").value;
+
+    document.getElementById("cropDisplay").textContent = crop;
+
+}
+
+
+// ==========================================
+// 7. WEATHER DATA STORAGE
+// ==========================================
+
+let weatherData = null;
+
+
+// ==========================================
+// 8. GET WEATHER DATA
+// ==========================================
+
+async function getWeather() {
+
+    const coords = locationDropdown.value.split(",");
+
+    const lat = Number(coords[0]);
+    const lon = Number(coords[1]);
+
+    document.getElementById("weatherStatus").textContent =
+        "Loading...";
+
+    weatherData = null;
+
+    try {
+
+        const url =
+            `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,precipitation,wind_speed_10m&hourly=precipitation_probability,shortwave_radiation&forecast_days=1&timezone=Asia%2FManila`;
+
+        const response = await fetch(url);
+
+        if (!response.ok) {
+            throw new Error("Weather API error");
+        }
+
+        const data = await response.json();
+
+        const current = data.current;
+        const hourly = data.hourly;
+
+        const currentHour = current.time.slice(0, 13);
+
+        let index = hourly.time.findIndex(time =>
+            time.slice(0, 13) === currentHour
+        );
+
+        if (index < 0) index = 0;
+
+        weatherData = {
+
+            temperature: current.temperature_2m,
+
+            humidity: current.relative_humidity_2m,
+
+            rain: hourly.precipitation_probability[index] ?? 0,
+
+            solar: hourly.shortwave_radiation[index] ?? 0,
+
+            wind: current.wind_speed_10m
+
+        };
+
+
+        // DISPLAY WEATHER
+
+        document.getElementById("temperature").textContent =
+            weatherData.temperature + " °C";
+
+        document.getElementById("humidity").textContent =
+            weatherData.humidity + " %";
+
+        document.getElementById("rain").textContent =
+            weatherData.rain + " %";
+
+        document.getElementById("solar").textContent =
+            weatherData.solar + " W/m²";
+
+        document.getElementById("wind").textContent =
+            weatherData.wind + " km/h";
+
+        document.getElementById("weatherStatus").textContent =
+            "Updated";
+
+    }
+
+    catch(error) {
+
+        console.error("Weather Error:", error);
+
+        document.getElementById("weatherStatus").textContent =
+            "Unavailable";
+
+        alert("Unable to retrieve weather data. Please try again.");
+
+    }
+
+}
+
+
+// ==========================================
+// 9. SOLAR DRYING SUITABILITY ANALYSIS
+// ==========================================
+
+function calculateSuitability() {
+
+    if (!weatherData) {
+
+        alert("Please retrieve weather data first.");
+
+        return;
+
+    }
+
+    const w = weatherData;
+
+
+    // WEATHER CRITERIA SCORES
+
+    const solarScore = Math.min(
+        100,
+        (w.solar / 800) * 100
+    );
+
+    const humidityScore = Math.max(
+        0,
+        Math.min(100, ((85 - w.humidity) / 35) * 100)
+    );
+
+    const rainScore = Math.max(
+        0,
+        100 - w.rain
+    );
+
+    const temperatureScore = Math.max(
+        0,
+        100 - Math.abs(w.temperature - 32) * 5
+    );
+
+    const windScore = Math.max(
+        0,
+        100 - Math.abs(w.wind - 10) * 5
+    );
+
+
+    // WEIGHTED SUITABILITY SCORE
+
+    const score = Math.round(
+
+        solarScore * 0.30 +
+
+        humidityScore * 0.20 +
+
+        rainScore * 0.25 +
+
+        temperatureScore * 0.15 +
+
+        windScore * 0.10
+
+    );
+
+
+    // CLASSIFICATION
+
+    let classification;
+    let recommendation;
+
+    if (score >= 80) {
+
+        classification = "Highly Favorable";
+
+        recommendation =
+            "Weather conditions appear favorable for solar drying.";
+
+    }
+
+    else if (score >= 60) {
+
+        classification = "Moderately Favorable";
+
+        recommendation =
+            "Solar drying may be possible with weather monitoring.";
+
+    }
+
+    else if (score >= 40) {
+
+        classification = "Marginally Favorable";
+
+        recommendation =
+            "Consider a covered or hybrid solar dryer.";
+
+    }
+
+    else {
+
+        classification = "Unfavorable";
+
+        recommendation =
+            "Consider mechanical or protected drying.";
+
+    }
+
+
+    // DISPLAY RESULTS
+
+    document.getElementById("score").textContent =
+        score + " / 100";
+
+    document.getElementById("classification").textContent =
+        classification;
+
+    document.getElementById("recommendation").textContent =
+        recommendation;
+
+    document.getElementById("limitations").textContent =
+        "Preliminary weather-only score. Not a validated crop-specific drying forecast or permanent site suitability assessment.";
+
+}
+
+
+// ==========================================
+// 10. GET 7-DAY WEATHER FORECAST
+// ==========================================
+
+async function getForecast() {
+
+    const coords = locationDropdown.value.split(",").map(Number);
+
+    const lat = coords[0];
+    const lon = coords[1];
+
+    const status = document.getElementById("forecastStatus");
+    const container = document.getElementById("forecastContainer");
+
+    status.textContent = "Loading forecast...";
+    container.innerHTML = "";
+
+    try {
+
+        const url =
+            `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max&forecast_days=7&timezone=Asia%2FManila`;
+
+        const response = await fetch(url);
+
+        if (!response.ok) {
+            throw new Error("Weather forecast API error");
+        }
+
+        const data = await response.json();
+
+        displayForecast(data.daily);
+
+        status.textContent = "7-day forecast updated.";
+
+    } catch (error) {
+
+        console.error("Forecast Error:", error);
+
+        status.textContent = "Unable to load forecast.";
+
+    }
+
+}
+
+
+// ==========================================
+// 11. WEATHER CONDITION
+// ==========================================
+
+function getWeatherCondition(code) {
+
+    if (code === 0) return ["☀️", "Clear"];
+    if (code === 1 || code === 2) return ["🌤️", "Partly Cloudy"];
+    if (code === 3) return ["☁️", "Cloudy"];
+    if (code === 45 || code === 48) return ["🌫️", "Fog"];
+
+    if ([51, 53, 55, 56, 57].includes(code))
+        return ["🌦️", "Drizzle"];
+
+    if ([61, 63, 65, 66, 67].includes(code))
+        return ["🌧️", "Rain"];
+
+    if ([71, 73, 75, 77].includes(code))
+        return ["❄️", "Snow"];
+
+    if ([80, 81, 82].includes(code))
+        return ["🌧️", "Rain Showers"];
+
+    if ([85, 86].includes(code))
+        return ["🌨️", "Snow Showers"];
+
+    if ([95, 96, 99].includes(code))
+        return ["⛈️", "Thunderstorm"];
+
+    return ["🌤️", "Unknown"];
+
+}
+
+
+// ==========================================
+// 12. DISPLAY 7-DAY FORECAST
+// ==========================================
+
+function displayForecast(daily) {
+
+    const container = document.getElementById("forecastContainer");
+
+    container.innerHTML = "";
+
+    daily.time.forEach((date, index) => {
+
+        const condition = getWeatherCondition(
+            daily.weather_code[index]
+        );
+
+        const dateText = new Date(date + "T12:00:00")
+            .toLocaleDateString("en-PH", {
+                weekday: "short",
+                month: "short",
+                day: "numeric"
+            });
+
+        const maxTemp = daily.temperature_2m_max[index];
+
+        const minTemp = daily.temperature_2m_min[index];
+
+        const rainChance =
+            daily.precipitation_probability_max[index];
+
+        const forecastDay = document.createElement("div");
+
+        forecastDay.className = "forecast-day";
+
+        forecastDay.innerHTML = `
+            <span class="day">${dateText}</span>
+
+            <span class="icon" title="${condition[1]}">
+                ${condition[0]}
+            </span>
+
+            <span class="temp"> 
+                ${Math.round(maxTemp)}° / ${Math.round(minTemp)}°
+            </span>
+        `;
+
+        forecastDay.title =
+            `${condition[1]} | Rain probability: ${rainChance ?? "N/A"}%`;
+
+        container.appendChild(forecastDay);
+
+    });
+
+}
+
+
+// ==========================================
+// 13. INITIALIZE APPLICATION
+// ==========================================
+
+getWeather();
+getForecast();
+
+setTimeout(() => {
+    map.invalidateSize();
+}, 200);
+
+</script>
+
+</body>
+</html>
+<div class="weather-layout">
+
+    <div class="weather-cards">
+        <!-- Temperature card -->
+        <!-- Humidity card -->
+        <!-- Rain Probability card -->
+        <!-- Solar Radiation card -->
+        <!-- Wind Speed card -->
+    </div>

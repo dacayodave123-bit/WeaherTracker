@@ -1,0 +1,128 @@
+
+/* ==========================================
+17. WEATHER AND 7-DAY FORECAST LAYOUT
+========================================== */
+
+.weather-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 205px;
+    gap: 15px;
+    align-items: stretch;
+    width: 100%;
+}
+
+/* FIVE WEATHER CARDS */
+
+.weather-grid {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 12px;
+    min-width: 0;
+}
+
+.weather-card {
+    background: #f4f8f6;
+    padding: 15px;
+    border-radius: 8px;
+    min-width: 0;
+}
+
+.weather-card span {
+    display: block;
+    color: #666;
+    margin-bottom: 8px;
+}
+
+.weather-card strong {
+    font-size: 22px;
+    color: #176b45;
+}
+
+/* 7-DAY FORECAST RIGHT CORNER */
+
+.forecast-box {
+    background: #ffffff;
+    padding: 15px;
+    border-radius: 10px;
+    border: 1px solid #dcfce7;
+    box-shadow: 0 3px 12px rgba(0,0,0,0.07);
+    width: 100%;
+    min-width: 0;
+}
+
+.forecast-box h2 {
+    color: #14532d;
+    font-size: 20px;
+    line-height: 1.25;
+    margin-top: 0;
+    margin-bottom: 12px;
+    border-bottom: 2px solid #dcfce7;
+    padding-bottom: 10px;
+}
+
+#forecastStatus {
+    font-size: 13px;
+    color: #15803d;
+    font-weight: bold;
+    margin: 10px 0;
+}
+
+#forecastContainer {
+    display: flex;
+    flex-direction: column;
+}
+
+.forecast-day {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 25px auto;
+    align-items: center;
+    gap: 5px;
+    padding: 12px 0;
+    border-bottom: 1px solid #dcfce7;
+    font-size: 12px;
+}
+
+.forecast-day:last-child {
+    border-bottom: none;
+}
+
+.forecast-day .day {
+    font-weight: bold;
+    color: #334155;
+}
+
+.forecast-day .icon {
+    font-size: 19px;
+    text-align: center;
+}
+
+.forecast-day .temp {
+    text-align: right;
+    color: #15803d;
+    font-weight: bold;
+    white-space: nowrap;
+}
+
+/* TABLET RESPONSIVE */
+
+@media screen and (max-width: 1000px) {
+    .weather-layout {
+        grid-template-columns: 1fr;
+    }
+
+    .weather-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+}
+
+/* MOBILE RESPONSIVE */
+
+@media screen and (max-width: 600px) {
+    .weather-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .forecast-box {
+        padding: 14px;
+    }
+}
